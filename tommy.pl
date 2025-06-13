@@ -10,7 +10,8 @@ sub rgb {
 
 sub display_length {
     my $text = shift;
-    $text =~ s/\e\[[0-9;]*m//g; 
+    # Remove all ANSI escape sequences more thoroughly
+    $text =~ s/\e\[[0-9;]*[a-zA-Z]//g; 
     return length($text);
 }
 
@@ -204,6 +205,26 @@ sub draw_progress_bar {
     return "[$bar]";
 }
 
+# Special function for formatting progress bar lines
+sub format_progress_line {
+    my ($prefix, $percent, $width) = @_;
+    $width //= 76;
+    
+    my $bar = draw_progress_bar($percent);
+    my $line_content = $prefix . $bar;
+    
+    # The progress bar is always [40 chars] = 42 chars total with brackets
+    # Calculate based on actual content length without ANSI codes
+    my $prefix_length = length($prefix);
+    my $bar_visual_length = 42;  # [40 chars] = 42 total
+    my $total_content_length = $prefix_length + $bar_visual_length;
+    
+    my $padding = $width - $total_content_length;
+    $padding = 0 if $padding < 0;
+    
+    return "│ $line_content" . " " x $padding . " │\n";
+}
+
 # Helper function for proper box line formatting
 sub format_box_line {
     my ($content, $width) = @_;
@@ -229,9 +250,8 @@ sub display_system_status {
         print format_box_line(rgb(100, 200, 255, "MEMORY STATUS"));
         print "├" . "─" x 78 . "┤\n";
         
-        my $ram_bar = draw_progress_bar($info{ram_percent});
         my $usage_text = sprintf("Usage: %3d%% ", $info{ram_percent});
-        print format_box_line($usage_text . $ram_bar);
+        print format_progress_line($usage_text, $info{ram_percent});
         
         my $used_line = sprintf("Used: %dMB    Available: %dMB", $info{used_ram}, $info{available_ram});
         print format_box_line(rgb(150, 150, 150, $used_line));
@@ -268,13 +288,12 @@ sub display_system_status {
         print format_box_line(rgb(255, 150, 100, "SWAP STATUS"));
         print "├" . "─" x 78 . "┤\n";
         
-        my $swap_bar = draw_progress_bar($info{swap_percent});
         my $swap_usage_text = sprintf("Usage: %3d%% ", $info{swap_percent});
-        print format_box_line($swap_usage_text . $swap_bar);
+        print format_progress_line($swap_usage_text, $info{swap_percent});
         
-        my $swap_line = sprintf("Used: %dMB    Free: %dMB    Total: %dMB", 
+        my $swap_details = sprintf("Used: %dMB    Free: %dMB    Total: %dMB", 
                               $info{swap_used}, $info{swap_free}, $info{swap_total});
-        print format_box_line(rgb(150, 150, 150, $swap_line));
+        print format_box_line(rgb(150, 150, 150, $swap_details));
         print "╰" . "─" x 78 . "╯\n";
     }
     
@@ -322,13 +341,12 @@ sub display_system_status {
         print format_box_line(rgb(255, 100, 200, "DISK USAGE (Root Filesystem)"));
         print "├" . "─" x 78 . "┤\n";
         
-        my $disk_bar = draw_progress_bar($info{disk_percent});
         my $disk_usage_text = sprintf("Usage: %3d%% ", $info{disk_percent});
-        print format_box_line($disk_usage_text . $disk_bar);
+        print format_progress_line($disk_usage_text, $info{disk_percent});
         
-        my $disk_line = sprintf("Used: %s    Available: %s    Total: %s", 
+        my $disk_details = sprintf("Used: %s    Available: %s    Total: %s", 
                               $info{disk_used}, $info{disk_available}, $info{disk_total});
-        print format_box_line(rgb(150, 150, 150, $disk_line));
+        print format_box_line(rgb(150, 150, 150, $disk_details));
         print "╰" . "─" x 78 . "╯\n";
     }
     
@@ -358,7 +376,7 @@ sub display_system_status {
     }
     
     # Credit line - clean without gradient
-    print "\n" . rgb(200, 150, 255, "Tommy Check v2.0 by Nixie") . "\n";
+    print "\n" . rgb(200, 150, 255, "Tommy Check v1.0") . "\n";
 }
 
 # Main execution
