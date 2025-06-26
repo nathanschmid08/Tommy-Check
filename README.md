@@ -1,4 +1,6 @@
-# Tommy-Check
+<p align="center">
+  <img src="md/font.png" alt="Tommy Check"/>
+</p>
 
 ## Skript ausführbar machen
 
